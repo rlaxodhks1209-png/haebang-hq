@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>해방 HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 레이아웃: 위 상태판 + 명령줄, 가운데 픽셀 사무실(캔버스), 아래 선택한 직원·부서 카드와 실장 답변 */
+:root{
+  --bg:#efe6da; --panel:#fffaf2; --ink:#2a1b16; --muted:#7a675b; --line:#e2d3c1;
+  --accent:#b8323f; --accent-ink:#fffaf2; --gold:#d79a2b;
+  --display:"Do Hyeon","Noto Sans KR",system-ui,sans-serif;
+  --body:"Noto Sans KR",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17110f;--panel:#231a16;--ink:#f3e6d8;--muted:#b6a090;--line:#3a2b24;--accent:#e4697a;--accent-ink:#1b120f;--gold:#e8b45a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17110f;--panel:#231a16;--ink:#f3e6d8;--muted:#b6a090;--line:#3a2b24;--accent:#e4697a;--accent-ink:#1b120f;--gold:#e8b45a;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:12px}
+.hud{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.brand{font-family:var(--display);font-size:28px;margin-right:auto;line-height:1}
+.brand small{font-family:var(--body);font-size:12px;color:var(--muted);margin-left:8px}
+.pill{background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:6px 14px;font-family:var(--display);font-size:22px;box-shadow:0 3px 0 var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill b{color:var(--accent);font-weight:400}
+.cmd{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid var(--ink);border-radius:12px;padding:4px 6px 4px 14px}
+.cmd span{font-family:var(--display);font-size:22px;color:var(--accent)}
+.cmd input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:var(--display);font-size:20px;padding:8px 0;outline:none}
+.cmd button{border:2px solid var(--ink);background:var(--gold);color:#2a1b16;border-radius:8px;font-family:var(--display);font-size:18px;padding:4px 12px;cursor:pointer}
+.cmd:focus-within{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:4px 11px;font:inherit;font-size:13px;cursor:pointer}
+.chips button:hover{border-color:var(--accent)}
+.stage{overflow-x:auto;border-radius:14px;border:4px solid #1d1418;background:#1d1418}
+canvas{display:block;width:100%;min-width:900px;height:auto;image-rendering:pixelated;cursor:pointer}
+.hint{font-size:12.5px;color:var(--muted)}
+.below{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.below{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.card h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge{font-family:var(--body);font-size:12px;font-weight:700;border-radius:99px;padding:2px 9px;background:var(--line);color:var(--ink)}
+.badge.new{background:#dbe9fb;color:#2c5b9c}.badge.ok{background:#d8efe0;color:#246b43}.badge.wait{background:#f8e5c6;color:#8a5414}.badge.off{background:#e9e3de;color:#6f645d}
+.kv{display:grid;grid-template-columns:76px 1fr;gap:4px 10px;margin:0;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.log{display:grid;gap:8px;max-height:260px;overflow:auto}
+.msg{font-size:14px;padding:8px 12px;border-radius:12px;max-width:92%}
+.msg.me{justify-self:end;background:var(--ink);color:var(--bg)}
+.msg.ai{background:color-mix(in srgb,var(--gold) 22%,var(--panel));border:1px solid var(--line)}
+.msg.ai b{display:block;font-size:12px;color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<style>
+.gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#1d1418;padding:16px}
+.gate form{background:#2b1f2c;border:3px solid #d79a2b;border-radius:16px;padding:28px 24px;display:grid;gap:14px;width:min(340px,100%);text-align:center;color:#ffe7c4;font-family:"Do Hyeon","Noto Sans KR",sans-serif}
+.gate h1{margin:0;font-size:34px;font-weight:400}
+.gate p{margin:0;font-family:"Noto Sans KR",sans-serif;font-size:14px;color:#d9c4b0}
+.gate input{font:inherit;font-size:28px;letter-spacing:.4em;text-align:center;padding:10px;border-radius:10px;border:2px solid #d79a2b;background:#1d1418;color:#ffe7c4}
+.gate button{font:inherit;font-size:20px;padding:10px;border-radius:10px;border:0;background:#d79a2b;color:#2a1b16;cursor:pointer}
+.gate .err{color:#ff9a9a;min-height:1.2em}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><form id="gateForm" autocomplete="off">
+<h1>해방 HQ</h1><p>사장님 비밀번호 4자리를 넣어 주세요</p>
+<input id="pin" type="password" inputmode="numeric" maxlength="4" aria-label="비밀번호 4자리" autofocus>
+<button type="submit">출근하기</button><p class="err" id="err"></p></form></div>
+<div id="app" hidden>
+<div class="wrap">
+  <div class="hud">
+    <div class="brand">해방 HQ<small>해방 혼술바 · AI 직원 사무실</small></div>
+    <span class="pill">출근 <b id="inCount">0명</b></span>
+    <span class="pill">월급 <b>₩0</b></span>
+    <span class="pill" id="clockPill">--:--</span>
+  </div>
+  <form class="cmd" id="cmd" autocomplete="off">
+    <span aria-hidden="true">&gt;</span>
+    <input id="cmdIn" placeholder="오늘 출근 현황 알려줘" aria-label="실장에게 말하기">
+    <button type="submit">↵</button>
+  </form>
+  <div class="chips" id="chips"></div>
+  <div class="stage"><canvas id="cv" width="1200" height="1475" aria-label="해방 HQ 사무실. 직원이나 부서를 누르면 아래에 자세히 나와요."></canvas></div>
+  <div class="hint">직원이나 부서를 누르면 아래에 자세히 나와요. 휴대폰에서는 사무실을 옆으로 밀어서 보세요.</div>
+  <div class="below">
+    <section class="card" id="info" aria-live="polite"></section>
+    <section class="card"><h2>실장 보고</h2><div class="log" id="log"></div></section>
+  </div>
+</div>
+
+</div>
+<script>
+function startHQ(){
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const W=1200,H=1475;
+const dpr=Math.min(2,window.devicePixelRatio||1);
+cv.width=W*dpr;cv.height=H*dpr;ctx.scale(dpr,dpr);ctx.imageSmoothingEnabled=false;
+const FONT='"Do Hyeon","Noto Sans KR",sans-serif';
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ── 부서·직원 데이터 ──
+const DEPTS=[
+ {id:"sogaeting",name:"소개팅팀",x:30,y:140,w:600,h:510,cols:6,rug:"#5b2b36",edge:"#b8323f",st:["사이트 완성 · 올리기만 남음","wait"],
+  about:"매장에서 여는 로테이션 소개팅(최대 12명, 한 달에 두 번 정도). 사이트를 다 만들었고 지금은 구글 설문지로 받는 중이에요. 참가비 29,900원(칵테일 1잔 포함)."},
+ {id:"blog",name:"블로그팀",x:660,y:140,w:510,h:325,cols:5,rug:"#2f4a3a",edge:"#5fae7e",st:["15명 · 준비 중","new"],about:"네이버 블로그 자동화. 일주일에 3편 올릴 예정이에요."},
+ {id:"reels",name:"릴스팀",x:660,y:495,w:510,h:325,cols:5,rug:"#5a3a26",edge:"#e0904a",st:["15명 · 준비 중","new"],about:"인스타 릴스. 첫 편은 매장 소개, 촬영본과 AI 아바타를 섞어요."},
+ {id:"threads",name:"쓰레드팀",x:30,y:680,w:510,h:235,cols:5,rug:"#2c3a55",edge:"#6f93d6",st:["10명 · 방향 기다리는 중","new"],about:"쓰레드 글 운영. 어떤 글을 올릴지 정해 주시면 바로 시작해요."},
+ {id:"sales",name:"정산팀",x:30,y:945,w:510,h:235,cols:5,rug:"#4d4424",edge:"#d6b546",st:["10명 · 자료 기다리는 중","new"],about:"매출 정산. 포스기 내역이나 엑셀을 주시면 정산 방식부터 같이 정해요."},
+ {id:"play",name:"플레이앱팀",x:660,y:850,w:510,h:325,cols:4,rug:"#45305a",edge:"#a77fd6",st:["12명 · 기획 기다리는 중","new"],about:"플레이 앱 만들기. 어떤 앱을 만들지 정해 주시면 시작해요."},
+ {id:"exec",name:"경영지원실",x:30,y:1210,w:510,h:235,cols:5,rug:"#3a2a22",edge:"#d79a2b",st:["근무 중","ok"],about:"대표님 자리와 AI 실장, 지원 직원들. 실장이 모든 부서 일을 모아 대표님께 보고해요."},
+ {id:"lounge",name:"라운지",x:570,y:1210,w:600,h:235,rug:"#3b3030",edge:"#8a7a70",st:["휴게","off"],about:"커피 머신, 정수기, 소파. 직원들이 쉬러 와요."}];
+const PART={dev:"#b8323f",plan:"#3f8f62",sec:"#3b5fb0",ship:"#c27a1f"};
+const SOG=[
+ ["서버","파트장","dev","주소·로그인·보안 설정","사이트 뼈대","ok"],["저장","대리","dev","신청·정원·대기 저장","신청 저장소","ok"],["자리 배정","사원","dev","자동 배정을 만들었지만 대표님 결정으로 뺌","대기 발령","off"],["설문","대리","dev","5단계 설문 문항","신청 설문","ok"],["알림","사원","dev","새 신청 때 문자·이메일","알림 기능","ok"],["이미지","대리","dev","캐릭터 8명 손질","캐릭터 그림","ok"],
+ ["디자인","대리","dev","색·버튼·말풍선","브랜드 화면","ok"],["홈 화면","사원","dev","손님 첫 화면","첫 화면","ok"],["신청 화면","사원","dev","5단계 신청서","신청 화면","ok"],["조회 화면","사원","dev","전화번호+비밀번호로 내 신청 보기","내 신청","ok"],["운영자1","대리","dev","대시보드·회차·신청자","사장님 화면","ok"],["운영자2","사원","dev","설문 보기·현장 체크","설문 보기","ok"],
+ ["기획","파트장","plan","참가비·환불·연령대 정책","운영 정책","ok"],["당일 진행","대리","plan","당일 순서표·대본","진행표","ok"],["카피","대리","plan","사이트 문구·인스타 공고","홍보 문구","ok"],["서기","사원","plan","결정 기록·미정 목록","결정 기록","ok"],["제안서","사원","plan","사업 제안서","제안서 초안","ok"],["이미지 컨설팅","사원","plan","캐릭터 통일 진단","이미지 진단","ok"],
+ ["웹디자인","대리","plan","캐릭터 중심 화면 개편","화면 개편","ok"],["법무","과장","plan","결혼중개업법·개인정보 검토","동의서 초안","ok"],["보안총괄","파트장","sec","보안 결과 종합","보안 보고서","ok"],["화면 공격","대리","sec","해킹 코드 심기 시험","막힘 확인","ok"],["인증","대리","sec","비밀번호 맞히기 시험","잠금 보강","ok"],["서버 공격","사원","sec","DB·서버 다운 시험","입력 검사","ok"],
+ ["개인정보","대리","sec","개인정보 흐름·삭제","보관 점검","ok"],["운영 보안","사원","sec","HTTPS·백업·사고 대응","체크리스트","ok"],["배포","파트장","ship","올릴 곳·설정·백업 준비","힉스필드로 올릴 준비 중","wait"],["통합 시험","대리","ship","손님 12명 동시 신청 시험","53개 통과","ok"],["기기 시험","사원","ship","아이폰·갤럭시·큰 글씨","기기 확인","ok"],["설명서","사원","ship","사장님용 사용 설명서","운영 설명서","ok"]];
+// 새로 뽑은 부서 (이름, 맡을 일) — 첫 줄은 팀장
+const HIRE={
+ blog:{shirt:"#3f8f62",list:[["블로그 팀장","주 3편 발행 총괄"],["키워드 분석","네이버 검색어 찾기"],["주제 기획","글감·달력 짜기"],["글쓰기1","메뉴·칵테일 글"],["글쓰기2","매장·분위기 글"],["글쓰기3","이벤트·소개팅 글"],["사진 편집","매장 사진 보정"],["썸네일","대표 이미지 만들기"],["교정","맞춤법·말투 다듬기"],["검색 노출","네이버 상위 노출 점검"],["발행 일정","월·수·금 예약 발행"],["댓글 관리","댓글 답하기"],["이웃 관리","서로이웃 늘리기"],["리뷰 확인","방문자 리뷰 모으기"],["성과 분석","조회수·유입 정리"]]},
+ reels:{shirt:"#c9682e",list:[["릴스 PD","첫 편 매장 소개 총괄"],["기획 작가","릴스 아이디어"],["대본","말·자막 대본"],["촬영 감독","매장 촬영 구도"],["촬영 보조","소품·동선"],["조명","바 조명 연출"],["편집","컷 편집"],["자막","자막·글자 효과"],["음악","배경음·효과음"],["AI 아바타","AI 아바타 만들기"],["썸네일","커버 이미지"],["트렌드","요즘 뜨는 릴스 조사"],["해시태그","태그·문구"],["업로드","올리는 시간 관리"],["성과 분석","조회·저장·공유 정리"]]},
+ threads:{shirt:"#3b5fb0",list:[["쓰레드 팀장","쓰레드 운영 총괄"],["글 기획","주제 정하기"],["글쓰기1","혼술 이야기"],["글쓰기2","바텐더 한마디"],["짤·이미지","사진·짤 만들기"],["댓글 소통","답글 달기"],["트렌드","요즘 대화 주제 조사"],["발행 일정","올리는 시간 관리"],["계정 성장","팔로워 늘리기"],["성과 분석","반응 정리"]]},
+ sales:{shirt:"#b08a1e",list:[["정산 팀장","정산 총괄"],["매출 집계","하루 매출 모으기"],["카드 매출","카드 내역 맞추기"],["현금·계좌","현금·이체 확인"],["기타 매출","소개팅 참가비 등"],["원가 계산","칵테일·위스키 원가"],["재고","술·재료 재고"],["지출","월세·공과금·구매"],["세무 준비","부가세 자료"],["월간 보고","한 달 정산표"]]},
+ play:{shirt:"#7a52b3",list:[["앱 팀장","플레이 앱 총괄"],["아이디어","앱 주제 찾기"],["화면 설계","화면 흐름"],["앱 디자인","색·버튼"],["개발1","앱 화면 만들기"],["개발2","기능 만들기"],["서버","저장·로그인"],["게임 밸런스","재미 조절"],["사운드","소리·음악"],["시험","버그 찾기"],["출시","앱 마켓 올리기"],["운영","업데이트·공지"]]},
+ exec:{shirt:"#5a4a3a",list:[["비서","대표님 일정·연락"],["고객 DM","인스타 DM 응대"],["매장 운영","오픈·마감 체크"],["공용 디자인","포스터·메뉴판"],["데이터","전체 숫자 정리"],["총무","비품·택배"],["인사","100명 채용 담당"]]}};
+const SKIN=["#f2c9a0","#e8b48a","#f5d3b0","#d9a47c"],HAIR=["#2a1b16","#4a2f22","#1b1b22","#6b4428","#2f2430","#8a5a32","#7a3b2a"];
+const people=[];
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const seatOf=(d,i)=>{const c=i%d.cols,r=Math.floor(i/d.cols);return{dx:d.x+18+c*96,dy:d.y+80+r*92}};
+const D=id=>DEPTS.find(x=>x.id===id);
+const add=(p,dept,i)=>{const {dx,dy}=seatOf(D(dept),i);people.push({...p,dept,dx,dy,x:dx+18,y:dy-38,mode:"sit",skin:p.skin||SKIN[(i+dept.length)%4],hair:p.hair||HAIR[(i*5+dept.length)%7]})};
+SOG.forEach((s,i)=>add({name:s[0],rank:s[1],part:s[2],job:s[3],out:s[4],st:s[5],shirt:PART[s[2]]},"sogaeting",i));
+const RANKS=["대리","사원","사원","대리","과장","사원"];
+const FIX={blog:"주 3편 준비 중",reels:"첫 편: 매장 소개"};
+["blog","reels","threads","sales","play"].forEach(id=>HIRE[id].list.forEach(([n,j],i)=>add({name:n,rank:i===0?"팀장":RANKS[i%6],job:j,out:i===0&&FIX[id]?FIX[id]:"입사 · 준비 중",st:i===0&&FIX[id]?"wait":"new",shirt:HIRE[id].shirt,lead:i===0,bubFix:i===0&&FIX[id]?FIX[id]:null},id,i)));
+const BOSS={boss:true,empty:true,label:"대표님 자리",dept:"exec",...seatOf(D("exec"),0)};people.push(BOSS);
+const cs=seatOf(D("exec"),1);
+const CHIEF={name:"실장",rank:"AI 실장",dept:"exec",job:"모든 부서 일을 모아 대표님께 보고",out:"보고 대기",st:"ok",shirt:"#2a2a38",skin:"#f2c9a0",hair:"#1b1b22",dx:cs.dx,dy:cs.dy,x:cs.dx+18,y:cs.dy-38,mode:"sit",chief:true};people.push(CHIEF);
+HIRE.exec.list.forEach(([n,j],i)=>add({name:n,rank:i===6?"과장":RANKS[i%6],job:j,out:i===6?"100명 채용 완료":"입사 · 준비 중",st:i===6?"ok":"new",shirt:HIRE.exec.shirt},"exec",i+2));
+people.push({empty:true,dept:"exec",...seatOf(D("exec"),9)});
+// 첫 업무 (실장이 나눔, 11/17)
+const FIRST={
+ blog:["첫 3편 순서 확정·검수","‘부천 혼술바’ 등 검색어 20개 뽑기","첫 3편 제목·목차 짜기","1편: 해방 혼술바 소개 초안","2편: 시그니처 칵테일 초안","3편: 로테이션 소개팅 안내 초안","매장 사진 고르기·보정 기준","3편 대표 이미지 틀","말투 기준표 만들기","제목·태그 검색 노출 점검","월·수·금 예약 달력","댓글 답장 문구 10개","주변 가게 이웃 목록","네이버 지도 리뷰 모으기","주간 조회수 표 틀"],
+ reels:["첫 편 30초 구성 확정","첫 편 아이디어 3안","30초 대본·자막 초안","촬영 콘티(장면 6컷)","소품·동선 목록","저녁 바 조명 촬영 시간 잡기","편집 틀(컷 길이) 만들기","자막 글꼴·색 정하기","배경음 후보 3곡","힉스필드 아바타 요청문","커버 이미지 3안","요즘 바·술 릴스 10개 조사","해시태그 20개","올리는 시간 정하기","저장·공유 기록 표 틀"],
+ threads:["방향: 혼술바 바텐더의 하루","주 5회 주제 달력","혼술 이야기 5개 초안","바텐더 한마디 5개 초안","글에 붙일 사진 고르기","답글 말투 정하기","요즘 쓰레드 술 이야기 조사","올리는 시간: 밤 9시","첫 달 목표 팔로워 정하기","반응 기록 표 틀"],
+ sales:["매일 매출 일지 틀 만들기","하루 매출 칸: 카드·현금·이체","카드사 정산 날짜 정리","현금·이체 확인 방법","소개팅 참가비 따로 기록","칵테일·잔술 원가표 틀","술·재료 재고표 틀","고정비 목록(월세·공과금)","부가세 자료 모으는 법","월간 정산표 틀"],
+ play:["앱 주제: 나에게 맞는 칵테일 찾기","질문 10개로 칵테일 추천","화면 5장 흐름","해방 색·캐릭터 없는 디자인","질문 화면 만들기","결과 화면·공유 만들기","결과 저장 방식 정하기","추천 결과 골고루 나오게","버튼 소리 고르기","휴대폰 시험 목록","출시: 인스타 링크로 먼저","결과별 메뉴 할인 아이디어"],
+ exec:["매주 월요일 주간 보고","DM 자주 묻는 질문 답장 틀","오픈·마감 체크리스트","메뉴판·포스터 손보기","부서별 숫자 한 장 요약","비품·소모품 목록","신입 70명 첫 업무 배정 완료"]};
+const DIR={blog:"첫 3편: 매장 소개 → 시그니처 칵테일 → 로테이션 소개팅 안내",reels:"첫 편: 30초 매장 소개 (촬영본 + 힉스필드 AI 아바타)",threads:"방향: ‘혼술바 바텐더의 하루’, 주 5회 밤 9시",sales:"매일 매출 일지 → 월간 정산표. 포스기 내역 오면 바로 채움",play:"첫 앱: ‘나에게 맞는 칵테일 찾기’ 테스트",exec:"주간 보고, DM 답장 틀, 오픈·마감 체크리스트"};
+people.forEach(p=>{if(p.empty||p.chief||!FIRST[p.dept])return;const list=HIRE[p.dept].list;const i=list.findIndex(x=>x[0]===p.name);if(i<0)return;
+ p.task=FIRST[p.dept][i];if(p.st==="new"){p.st="work";p.out="첫 업무 배정됨"}});
+DEPTS.forEach(d=>{if(DIR[d.id]){d.about+=" "+DIR[d.id]+".";if(d.st[1]==="new")d.st=[d.st[0].split(" · ")[0]+" · 첫 업무 중","work"]}});
+const staff=people.filter(p=>!p.empty);
+document.getElementById("inCount").textContent=staff.length+"명";
+
+// ── 그리기 도구 ──
+const R=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),w,h)};
+function txt(t,x,y,size,c,align="left"){ctx.font=size+"px "+FONT;ctx.fillStyle=c;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(t,x,y)}
+function bubble(t,x,y){ctx.font="14px "+FONT;const w=Math.ceil(ctx.measureText(t).width)+16;const bx=Math.max(4,Math.min(W-w-4,x-w/2));
+ R(bx,y-22,w,22,"#fffaf2");R(bx-2,y-20,2,18,"#fffaf2");R(bx+w,y-20,2,18,"#fffaf2");R(x-3,y,6,3,"#fffaf2");R(x-1,y+3,2,2,"#fffaf2");
+ ctx.strokeStyle="#2a1b16";ctx.lineWidth=1;txt(t,bx+w/2,y-11,14,"#2a1b16","center")}
+function tag(t,x,y,bg="#fffaf2",fg="#2a1b16",size=12){ctx.font=size+"px "+FONT;const w=Math.ceil(ctx.measureText(t).width)+10;R(x-w/2,y-8,w,16,bg);txt(t,x,y,size,fg,"center")}
+// 사람 (P=3 픽셀)
+function person(p,t,walking){const P=3,x=Math.round(p.x),y=Math.round(p.y);const s=(a,b,w,h,c)=>R(x+a*P,y+b*P,w*P,h*P,c);
+ const bob=walking?(Math.floor(t/150)%2):0;
+ s(1,0+bob,8,3,p.hair);s(1,2+bob,8,5,p.skin);s(1,2+bob,1,3,p.hair);s(8,2+bob,1,3,p.hair);
+ s(3,4+bob,1,1,"#2a1b16");s(6,4+bob,1,1,"#2a1b16");
+ s(0,7,10,6,p.shirt);s(4,7,2,2,"#fffaf2");s(-1,8,1,4,p.shirt);s(10,8,1,4,p.shirt);s(-1,12,1,1,p.skin);s(10,12,1,1,p.skin);
+ if(walking){s(2,13,6,2,"#3a3442");const l=Math.floor(t/150)%2;s(2,15,2,l?3:2,"#3a3442");s(6,15,2,l?2:3,"#3a3442");s(2,17+(l?1:0),2,1,"#1b1b22");s(6,17+(l?0:1),2,1,"#1b1b22")}}
+function chair(dx,dy){R(dx+14,dy-44,36,40,"#3d3440");R(dx+16,dy-42,32,12,"#4c4252")}
+function desk(dx,dy,st){R(dx,dy,64,22,"#c99a62");R(dx,dy+22,64,5,"#8a5f36");R(dx+3,dy+27,4,6,"#6e4a2a");R(dx+57,dy+27,4,6,"#6e4a2a");
+ R(dx+20,dy-12,24,15,"#22252c");R(dx+30,dy+3,4,3,"#22252c");
+ const led=st==="ok"?"#6fd3a1":st==="wait"?"#ffcf6e":st==="new"||st==="work"?"#7ab8ff":st==="off"?"#8a8a8a":"#44474f";R(dx+38,dy-9,3,3,led);
+ R(dx+4,dy+5,10,6,"#efe6d4");R(dx+48,dy+6,7,7,"#fffaf2");R(dx+49,dy+7,5,1,"#b8323f")}
+function plant(x,y){R(x,y+18,16,14,"#9a5b3a");R(x+2,y+16,12,4,"#7a4630");R(x+3,y,4,18,"#3f8f62");R(x+9,y+4,4,14,"#4fa874");R(x,y+6,4,8,"#4fa874");R(x+12,y+8,4,8,"#3f8f62")}
+// 배경 (한 번만 그려 두기)
+const bgc=document.createElement("canvas");bgc.width=W*dpr;bgc.height=H*dpr;
+function drawBG(){const c0=ctx;const b=bgc.getContext("2d");b.setTransform(dpr,0,0,dpr,0,0);b.imageSmoothingEnabled=false;
+ const RR=(x,y,w,h,c)=>{b.fillStyle=c;b.fillRect(x,y,w,h)};const T=(t,x,y,s,c,a="left")=>{b.font=s+"px "+FONT;b.fillStyle=c;b.textAlign=a;b.textBaseline="middle";b.fillText(t,x,y)};
+ // 바닥 마루
+ for(let y=110;y<H;y+=20){RR(0,y,W,20,(y/20)%2?"#6b4a36":"#654532");for(let x=((y/20)%3)*70;x<W;x+=210)RR(x,y,2,20,"#56392a")}
+ // 벽
+ RR(0,0,W,110,"#2b1f2c");RR(0,104,W,6,"#1d1418");
+ const win=(x)=>{RR(x,16,230,80,"#3a2a3e");const g=b.createLinearGradient(0,22,0,90);g.addColorStop(0,"#2b2350");g.addColorStop(.6,"#7a3e5c");g.addColorStop(1,"#e08a5a");b.fillStyle=g;b.fillRect(x+6,22,218,68);
+  let bx=x+6;let s2=x;while(bx<x+222){s2=(s2*9301+49297)%233280;const bw=14+s2%22,bh=18+s2%40;RR(bx,90-bh,bw,bh,"#1a1220");for(let wy=90-bh+5;wy<88;wy+=7)for(let wx=bx+3;wx<bx+bw-3;wx+=6)if((wx+wy+s2)%3===0)RR(wx,wy,3,3,"#ffd27a");bx+=bw+2}
+  RR(x+114,16,4,80,"#3a2a3e")};
+ win(24);win(946);
+ RR(300,14,320,84,"#d9cdbd");RR(306,20,308,72,"#fbf7ef");T("이번 주 목표",320,34,17,"#b8323f");T("· 소개팅 사이트 인터넷에 올리기",320,56,14,"#2a1b16");T("· 블로그 주 3편 · 릴스 첫 편",320,76,14,"#2a1b16");
+ RR(650,22,170,60,"#1d1418");RR(654,26,162,52,"#3b2533");T("해방 HQ",735,52,30,"#ffd27a","center");
+ // 부서 러그와 간판
+ DEPTS.forEach(d=>{RR(d.x,d.y,d.w,d.h,d.edge);RR(d.x+4,d.y+4,d.w-8,d.h-8,d.rug);b.font="17px "+FONT;const tw=b.measureText(d.name).width+20;RR(d.x+10,d.y-12,tw,26,"#1d1418");T(d.name,d.x+20,d.y+1,17,"#ffe7c4")});
+ // 라운지 소품
+ const L=DEPTS.find(x=>x.id==="lounge");
+ RR(L.x+20,L.y+40,130,40,"#c46a4a");RR(L.x+20,L.y+70,130,30,"#a8553a");RR(L.x+14,L.y+44,10,56,"#a8553a");RR(L.x+146,L.y+44,10,56,"#a8553a");
+ RR(L.x+180,L.y+30,70,26,"#7a5a44");RR(L.x+190,L.y+56,6,40,"#5a4232");RR(L.x+234,L.y+56,6,40,"#5a4232");
+ RR(L.x+280,L.y+20,40,60,"#d8d2cc");RR(L.x+286,L.y+28,28,18,"#2a2a33");RR(L.x+292,L.y+56,16,14,"#5a4232");T("커피",L.x+300,L.y+92,13,"#ffe7c4","center");
+ RR(L.x+340,L.y+14,24,26,"#9fd0f0");RR(L.x+338,L.y+40,28,46,"#e8e4e0");T("물",L.x+352,L.y+98,13,"#ffe7c4","center");
+ RR(L.x+380,L.y+20,52,90,"#5a3a28");for(let i=0;i<4;i++){RR(L.x+384,L.y+26+i*21,44,3,"#3e281c");["#b8323f","#3f8f62","#3b5fb0","#d79a2b","#7a5a44"].forEach((c,j)=>RR(L.x+386+j*8,L.y+29+i*21-14,6,14,c))}
+ [[16,150],[640,590],[1180-14,590],[700,120],[16,600]].forEach(([x,y])=>{b.save();b.translate(0,0);b.restore()});
+ return {RR};
+}
+drawBG();
+function bgPlants(){plant(8,118);plant(636,660);plant(1176,118);plant(560,930);plant(636,1420)}
+
+// 고정 가구(빈 자리 포함)
+const desks=people.map(p=>({dx:p.dx,dy:p.dy,p}));
+
+// ── 움직임: 소개팅팀 직원이 가끔 커피 마시러 감 ──
+const L=DEPTS.find(x=>x.id==="lounge");const COFFEE={x:L.x+286,y:L.y+90},AISLE_Y=1196;
+let walkers=[],nextWalk=performance.now()+1500;
+function startWalk(){const pool=people.filter(p=>!p.empty&&!p.chief&&p.mode==="sit"&&p.dept!=="exec");if(!pool.length)return;
+ const p=pool[Math.floor(rnd()*pool.length)];p.mode="walk";const cx=COFFEE.x+(walkers.length-1)*22;
+ p.path=[{x:p.x,y:AISLE_Y-6},{x:cx,y:AISLE_Y-6},{x:cx,y:COFFEE.y},{wait:2200,say:rnd()<.5?"커피 타는 중":"물 마시는 중"},{x:cx,y:AISLE_Y-6},{x:p.dx+18,y:AISLE_Y-6},{x:p.dx+18,y:p.dy-38}];
+ p.home={x:p.dx+18,y:p.dy-38};walkers.push(p)}
+function stepWalk(p,dt){const q=p.path[0];if(!q){p.mode="sit";p.x=p.home.x;p.y=p.home.y;p.say=null;walkers=walkers.filter(w=>w!==p);return}
+ if(q.wait!=null){p.say=q.say;q.wait-=dt;if(q.wait<=0){p.path.shift();p.say=null}return}
+ const sp=0.16*dt;const ddx=q.x-p.x,ddy=q.y-p.y;const d=Math.hypot(ddx,ddy);if(d<=sp){p.x=q.x;p.y=q.y;p.path.shift()}else{p.x+=ddx/d*sp;p.y+=ddy/d*sp}}
+
+// ── 말풍선 순환 ──
+const SAYS={ok:["끝났어요","확인 완료","정리했어요","시험 통과"],wait:["기다리는 중…"],off:["대기 발령"],new:["입사 첫날!","자료 보는 중","인수인계 중","준비 중","잘 부탁드려요"]};
+let bubSet=[],nextBub=0;
+function rotateBubbles(){const pool=people.filter(p=>!p.empty&&!p.chief&&!p.bubFix&&p.mode==="sit");bubSet=[];
+ const deploy=pool.find(p=>p.name==="배포");if(deploy)bubSet.push([deploy,"힉스필드로 이사 준비"]);
+ for(let k=0;k<7;k++){const p=pool[Math.floor(rnd()*pool.length)];if(bubSet.find(b=>b[0]===p||Math.abs(b[0].dy-p.dy)<10&&Math.abs(b[0].dx-p.dx)<200))continue;const arr=SAYS[p.st]||SAYS.ok;bubSet.push([p,p.task?(p.task.length>14?p.task.slice(0,13)+"…":p.task):p.name+": "+arr[Math.floor(rnd()*arr.length)]])}}
+const CHIEF_LINES=["대표님, 보고드릴게요!","오늘 출근 "+staff.length+"명!","신입 70명 첫 업무 배정 완료","해방 HQ 인터넷 개통!","월급은 ₩0이에요"];let chiefLine=0,chiefOverride=null,chiefUntil=0;
+
+// ── 선택 ──
+let sel=null,hoverDept=null;
+function draw(t){
+ ctx.drawImage(bgc,0,0,W,H);
+ bgPlants();
+ // 선택 테두리
+ if(sel&&sel.kind==="dept"){const d=sel.d;ctx.strokeStyle="#ffd27a";ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.strokeRect(d.x-3,d.y-3,d.w+6,d.h+6);ctx.setLineDash([])}
+ // 앉은 사람·빈 의자 → 책상
+ desks.forEach(({dx,dy,p})=>{chair(dx,dy);if(!p.empty&&p.mode==="sit")person(p,t,false);desk(dx,dy,p.empty?null:(p.mode==="sit"?p.st:null))});
+ desks.forEach(({dx,dy,p})=>{
+  if(p.empty){tag(p.label||"채용 예정",dx+32,dy+42,"#1d1418","#bfae9e",11)}
+  else if(p.chief||p.lead||p.rank==="파트장"){tag(p.name+" · "+p.rank,dx+32,dy+42,p.chief?"#d79a2b":"#fffaf2","#2a1b16",12)}
+  else tag(p.name,dx+32,dy+40,"#1d1418","#ffe7c4",11);
+  if(sel&&sel.kind==="person"&&sel.p===p){ctx.strokeStyle="#ffd27a";ctx.lineWidth=3;ctx.strokeRect(dx-6,dy-58,76,110)}});
+ // 걷는 사람
+ people.filter(p=>p.mode==="walk").forEach(p=>{person(p,t,true);tag(p.name,p.x+15,p.y+64,"#fffaf2","#2a1b16",11);if(p.say)bubble(p.say,p.x+15,p.y-6)});
+ // 말풍선
+ bubSet.forEach(([p,s])=>{if(p.mode==="sit")bubble(s,p.x+15,p.y-6)});
+ people.filter(p=>p.bubFix&&!p.chief).forEach(p=>bubble(p.bubFix,p.x+15,p.y-6));
+ const cl=chiefOverride&&t<chiefUntil?chiefOverride:CHIEF_LINES[chiefLine];bubble(cl,CHIEF.x+15,CHIEF.y-6);
+ // 부서 상태 표
+ DEPTS.forEach(d=>{if(d.id==="lounge"||d.id==="exec")return;const s=d.st[0];ctx.font="12px "+FONT;const w=ctx.measureText(s).width+12;const c=d.st[1]==="wait"?"#ffcf6e":d.st[1]==="ok"?"#6fd3a1":d.st[1]==="new"||d.st[1]==="work"?"#7ab8ff":"#bfb3a8";R(d.x+d.w-w-10,d.y-9,w,20,"#1d1418");txt(s,d.x+d.w-w/2-10,d.y+1,12,c,"center")});
+}
+let last=performance.now();
+function loop(t){const dt=Math.min(60,t-last);last=t;
+ if(!reduce){if(walkers.length<4&&t>nextWalk){startWalk();nextWalk=t+1800+rnd()*2500}walkers.slice().forEach(w=>stepWalk(w,dt));if(t>nextBub){rotateBubbles();nextBub=t+3200;chiefLine=(chiefLine+1)%CHIEF_LINES.length}}
+ draw(t);requestAnimationFrame(loop)}
+rotateBubbles();
+(document.fonts&&document.fonts.load?Promise.all([document.fonts.load('17px "Do Hyeon"'),document.fonts.load('14px "Noto Sans KR"')]).catch(()=>{}):Promise.resolve()).then(()=>{drawBG();requestAnimationFrame(loop)});
+
+// ── 클릭 ──
+function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+cv.addEventListener("click",e=>{const {x,y}=pt(e);
+ const wp=people.find(p=>!p.empty&&p.mode==="walk"&&x>=p.x-6&&x<=p.x+36&&y>=p.y-6&&y<=p.y+60);
+ const dp=desks.find(({dx,dy})=>x>=dx-4&&x<=dx+68&&y>=dy-56&&y<=dy+50);
+ if(wp)select({kind:"person",p:wp});else if(dp&&!dp.p.empty)select({kind:"person",p:dp.p});
+ else{const d=DEPTS.find(d=>x>=d.x&&x<=d.x+d.w&&y>=d.y-12&&y<=d.y+d.h);if(d)select({kind:"dept",d})}});
+const info=document.getElementById("info");
+const el=(t,c,s)=>{const e=document.createElement(t);if(c)e.className=c;if(s!=null)e.textContent=s;return e};
+const ST={ok:["끝남","ok"],wait:["기다리는 중","wait"],new:["신입 · 준비 중","new"],work:["첫 업무 중","new"],off:["쉬는 중","off"]};
+function select(s){sel=s;info.textContent="";
+ if(s.kind==="person"){const p=s.p;const h=el("h2",null,p.name+" "+p.rank);const st=ST[p.st]||ST.ok;h.append(el("span","badge "+st[1],st[0]));
+  const dl=el("dl","kv");const d=DEPTS.find(x=>x.id===p.dept);[["부서",d.name],["맡은 일",p.job]].concat(p.task?[["첫 업무",p.task]]:[]).concat([["상태",p.out]]).forEach(([k,v])=>{dl.append(el("dt",null,k),el("dd",null,v))});info.append(h,dl)}
+ else{const d=s.d;const h=el("h2",null,d.name);h.append(el("span","badge "+d.st[1],d.st[0]));const n=people.filter(p=>p.dept===d.id&&!p.empty).length,e2=people.filter(p=>p.dept===d.id&&p.empty&&!p.boss).length;
+  const dl=el("dl","kv");[["하는 일",d.about],["인원",n+"명"+(e2?" · 빈 책상 "+e2+"개":"")]].forEach(([k,v])=>{dl.append(el("dt",null,k),el("dd",null,v))});info.append(h,dl);
+  if(d.id==="sogaeting"){const p=el("p",null,"개발 12 · 기획 8 · 보안 6 · 출시 4명. 책상 불빛: 초록 끝남, 노랑 기다리는 중, 파랑 첫 업무 중, 회색 쉬는 중.");p.style.cssText="margin:8px 0 0;font-size:13px;color:var(--muted)";info.append(p)}}}
+select({kind:"dept",d:DEPTS[0]});
+
+// ── 시계 ──
+const clk=document.getElementById("clockPill");const tick=()=>{try{clk.textContent=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Asia/Seoul"})}catch(e){}};tick();setInterval(tick,20000);
+
+// ── 실장에게 말하기 ──
+const log=document.getElementById("log");
+const cnt=id=>people.filter(p=>p.dept===id&&!p.empty).length;
+const ANS=[
+ [/출근|현황|몇 ?명|인원/,()=>"오늘 출근 "+staff.length+"명이에요! 소개팅 "+cnt("sogaeting")+" · 블로그 "+cnt("blog")+" · 릴스 "+cnt("reels")+" · 쓰레드 "+cnt("threads")+" · 정산 "+cnt("sales")+" · 플레이앱 "+cnt("play")+" · 경영지원 "+cnt("exec")+"명(저 포함). 새로 온 70명도 첫 업무를 받아서 일하는 중이에요.","sogaeting"],
+ [/참가비|가격|요금|비용/,()=>"소개팅 참가비는 29,900원이에요(칵테일 1잔 포함). 한 번에 최대 12명, 한 달에 두 번 정도 열어요.","sogaeting"],
+ [/소개팅|로테이션/,()=>"소개팅 사이트는 다 만들었어요. 자동 검사 311개, 손님 흐름 시험 53개 통과했고요. 배포 담당이 힉스필드로 올릴 준비를 하고 있어요. 그 전까지는 구글 설문지로 받아요.","sogaeting"],
+ [/블로그/,()=>"블로그팀 15명 첫 업무: 첫 3편(매장 소개 → 시그니처 칵테일 → 로테이션 소개팅 안내) 초안, 검색어 20개, 월·수·금 예약 달력. 매장 사진만 주시면 바로 붙여요.","blog"],
+ [/릴스|영상/,()=>"릴스팀 15명 첫 업무: 30초 매장 소개 대본과 촬영 콘티 6컷, 배경음 후보, 힉스필드 아바타 요청문. 매장에서 찍은 영상을 주시면 편집 들어가요.","reels"],
+ [/쓰레드/,()=>"쓰레드팀 10명은 ‘혼술바 바텐더의 하루’ 방향으로 주 5회, 밤 9시에 올려요. 첫 업무로 글 10개 초안 쓰는 중이에요.","threads"],
+ [/정산|매출/,()=>"정산팀 10명은 매일 매출 일지(카드·현금·이체·소개팅 참가비)와 월간 정산표 틀을 만들어요. 포스기 내역을 주시면 바로 채워요.","sales"],
+ [/플레이|앱/,()=>"플레이앱팀 12명의 첫 앱은 ‘나에게 맞는 칵테일 찾기’ 테스트예요. 질문 10개로 칵테일을 추천하고, 인스타 링크로 먼저 내보내요.","play"],
+ [/목표|이번 ?주|칠판/,()=>"이번 주 목표는 칠판에 적어 둔 세 가지예요. 소개팅 사이트 인터넷에 올리기, 블로그 주 3편, 릴스 첫 편(매장 소개). 아직 셋 다 진행 중이에요.","exec"],
+ [/점검|고쳐|고치|작업실|HQ/i,()=>"이 사무실은 4시간마다 제가 한 번씩 둘러보고, 고칠 곳이 있으면 하나씩 고쳐요. 크게 바꿀 일은 대표님께 먼저 여쭤볼게요.","exec"],
+ [/할 ?일|해야/,()=>"대표님 할 일은 자료 보내 주시기예요. 블로그·릴스는 매장 사진과 영상, 정산은 포스기 매출 내역이요. 그러면 각 팀이 바로 결과를 만들어요.","exec"],
+ [/월급|돈|급여/,()=>"100명인데 월급은 ₩0이에요. 대신 일을 많이 주세요!","exec"],
+ [/채용|뽑|100/,()=>"인사 과장이 100명 채용을 끝냈어요. 새로 온 사람들은 파란 불빛 책상이에요.","exec"],
+ [/안녕|하이|ㅎㅇ/,()=>"대표님 오셨어요! 무엇을 보고드릴까요?","exec"]];
+function say(q){if(!q.trim())return;log.append(el("div","msg me",q));
+ const hit=ANS.find(([re])=>re.test(q));const a=hit?hit[1]():"아직 그 말은 못 알아들어요. ‘출근’, ‘소개팅’, ‘블로그’, ‘할 일’처럼 물어봐 주세요.";
+ const m=el("div","msg ai");m.append(el("b",null,"AI 실장"),document.createTextNode(a));log.append(m);log.scrollTop=log.scrollHeight;
+ chiefOverride=a.length>18?a.slice(0,17)+"…":a;chiefUntil=performance.now()+5000;
+ if(hit){const d=DEPTS.find(x=>x.id===hit[2]);if(d)select({kind:"dept",d})}}
+document.getElementById("cmd").addEventListener("submit",e=>{e.preventDefault();const i=document.getElementById("cmdIn");say(i.value||i.placeholder);i.value=""});
+const chips=document.getElementById("chips");["오늘 출근 현황 알려줘","소개팅 어디까지 됐어?","오늘 내 할 일","블로그는?","이번 주 목표는?","월급 얼마야?"].forEach(q=>{const b=el("button",null,q);b.type="button";b.addEventListener("click",()=>say(q));chips.append(b)});
+say("오늘 출근 현황 알려줘");
+}
+</script>
+<script>
+(function(){
+var H="224c310023e8bed291be5b585f26eb98f2aee7e8ee2f245a03999037a340f546";
+async function hash(v){var d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("haebang-hq:"+v));return Array.from(new Uint8Array(d)).map(function(b){return b.toString(16).padStart(2,"0")}).join("")}
+function open(){document.getElementById("gate").remove();document.getElementById("app").hidden=false;startHQ()}
+var ok=false;try{ok=sessionStorage.getItem("hb-hq")==="1"}catch(e){}
+if(ok){open();return}
+document.getElementById("gateForm").addEventListener("submit",async function(e){e.preventDefault();var v=document.getElementById("pin").value.trim();
+ if(await hash(v)===H){try{sessionStorage.setItem("hb-hq","1")}catch(e){}open()}else{document.getElementById("err").textContent="비밀번호가 달라요";document.getElementById("pin").value=""}});
+})();
+</script>
+</body>
+</html>
